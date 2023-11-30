@@ -117,23 +117,35 @@ while(True):
                 print("Baby is falling")
             #Temperature stuff
             degrees = temperature()
-            if(degrees <= 10):
+            degreesDanger = 0
+            if(degrees <= 5):
+                degreesDanger = -2
+                print("Baby is in danger of hypothermia")
+            elif(degrees <= 15):
+                degreesDanger = -1
                 print("It's getting too cold")
-            elif(degrees >= 30):
+            elif(degrees >= 27):
+                degreesDanger = 1
                 print("It's getting too hot")
+            elif(degrees >= 35):
+                degreesDanger = 2
+                print("Baby is in danger of hyperthermia")
             #Luminosity stuff
+            lightLevel = display.read_light_level()
+            if(lightLevel >= 20):
+                print("It's getting bright")
+            elif(lightLevel >= 70):
+                print("It's getting too bright")
             #Orientation stuff
             #Sleep Alarm trigger:
-            if(moveLevel == 3):
-                print("Baby is awake due to movement")
-            elif(moveLevel == 2):
-                print("Baby is awake due to movement")
+            #The if-elif cases are ranked from worse to best because the baby might be in a quite environnement but have fallen.
+            #So worse case has to be detected first and certainly not be outruled by something less dangerous.
+            if(soundLevel == 3 or moveLevel == 2 or moveLevel == 3 or degreesDanger == -2 or degreesDanger == 2):
+                print("Baby might be crying")
+            elif(soundLevel == 2 or degreesDanger == -1 or degreesDanger == 1):
+                print("Baby is most certainly awake")
             elif(soundLevel == 1 or moveLevel == 1):
-                print("Baby might have been woken up due to noise")
-            elif(soundLevel == 2):
-                print("Baby most certainly has been woken up due to noise")
-            elif(soundLevel == 3):
-                print("Baby might be crying due to noise")
+                print("Baby might be awake")
     
     #Menu used to manage milk intake
     elif(menu == 'Milk'):
