@@ -61,9 +61,23 @@ def moveDirection():
         return(6)
     return(0)
 
-def compasOrientation():
-    print()
-    #if()
+def compassOrientation():
+    if(compass.heading() >= 337.5 or compass.heading() <= 22.5):
+        return(0)
+    elif(compass.heading() <= 67.5):
+        return(0.5)
+    elif(compass.heading() <= 112.5):
+        return(1)
+    elif(compass.heading() <= 157.5):
+        return(1.5)
+    elif(compass.heading() <= 202.5):
+        return(2)
+    elif(compass.heading() <= 247.5):
+        return(2.5)
+    elif(compass.heading() <= 292.5):
+        return(3)
+    elif(compass.heading() <= 337.5):
+        return(3.5)
         
 #What button is pressed?
 def buttonPress(buttons):
@@ -144,6 +158,8 @@ while(True):
             elif(lightLevel >= 70):
                 print("It's getting too bright")
             #Orientation stuff
+            OrientationGesture = moveDirection()
+            OrientationCompass = compassOrientation()
             #Sleep Alarm trigger:
             #The if-elif cases are ranked from worse to best because the baby might be in a quite environnement but have fallen.
             #So worse case has to be detected first and certainly not be outruled by something less dangerous.
