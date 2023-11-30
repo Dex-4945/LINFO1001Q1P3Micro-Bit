@@ -137,6 +137,7 @@ while(True):
             elif(lightLevel >= 70):
                 print("It's getting too bright")
             #Orientation stuff
+            OrientationGesture = moveDirection
             #Sleep Alarm trigger:
             #The if-elif cases are ranked from worse to best because the baby might be in a quite environnement but have fallen.
             #So worse case has to be detected first and certainly not be outruled by something less dangerous.
