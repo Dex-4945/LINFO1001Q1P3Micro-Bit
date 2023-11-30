@@ -60,6 +60,10 @@ def moveDirection():
     elif(accelerometer.is_gesture('right')):
         return(6)
     return(0)
+
+def compasOrientation():
+    print()
+    #if()
         
 #What button is pressed?
 def buttonPress(buttons):
@@ -86,6 +90,9 @@ def buttonPress(buttons):
 
 #Main program
 while(True):
+    #Compass calibration
+    if(not (compass.is_calibrated())):
+        compass.calibrate()
     #Identifies the Be:bi as the "Child" one by displaying a 'C'
     if(menu == 'Id'):
         display.show(Child_Im)
@@ -137,7 +144,6 @@ while(True):
             elif(lightLevel >= 70):
                 print("It's getting too bright")
             #Orientation stuff
-            OrientationGesture = moveDirection
             #Sleep Alarm trigger:
             #The if-elif cases are ranked from worse to best because the baby might be in a quite environnement but have fallen.
             #So worse case has to be detected first and certainly not be outruled by something less dangerous.
@@ -151,7 +157,7 @@ while(True):
     #Menu used to manage milk intake
     elif(menu == 'Milk'):
         if(first):
-            display.scroll("Milk doses day " + str((day + 1) - len(milkPerDay)) + " = " + str(milkPerDay[day]), 100)
+            display.scroll("Milk doses day " + str(day - (len(milkPerDay) - 1)) + " = " + str(milkPerDay[day]), 100)
             first = False
     
     #Button use
@@ -163,8 +169,7 @@ while(True):
         elif(menu == 'Sleep'):
             menu = 'Milk'
             first = True
-            #day = len(milkPerDay) - 1
-            day = 1
+            day = len(milkPerDay) - 1
         elif(menu == 'Milk'):
             menu = 'Id'
             first = True
@@ -192,7 +197,7 @@ while(True):
         sleep(1)
     elif(buttonPress(6)):
         if(menu == 'Milk'):
-            display.scroll("Reset doses", 100)
+            display.scroll("Reset today's doses", 100)
             dosesAmount = 0
             first = True
             sleep(1000)
