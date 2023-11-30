@@ -45,21 +45,6 @@ def moveDanger():
     elif((accelerometer.was_gesture('up') or accelerometer.was_gesture('down') or accelerometer.was_gesture('face up') or accelerometer.was_gesture('face down') or accelerometer.was_gesture('left') or accelerometer.was_gesture('right')) and (abs(accelerometer.get_strength()) >= 1000)):
         return(1)
     return(0)
-        
-def moveDirection():
-    if(accelerometer.is_gesture('up')):
-        return(1)
-    elif(accelerometer.is_gesture('down')):
-        return(2)
-    elif(accelerometer.is_gesture('face up')):
-        return(3)
-    elif(accelerometer.is_gesture('face down')):
-        return(4)
-    elif(accelerometer.is_gesture('left')):
-        return(5)
-    elif(accelerometer.is_gesture('right')):
-        return(6)
-    return(0)
 
 def compassOrientation():
     if(compass.heading() >= 337.5 or compass.heading() <= 22.5):
