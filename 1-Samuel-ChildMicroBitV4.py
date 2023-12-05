@@ -1,5 +1,6 @@
 #Child Code
 from microbit import *
+import random
 
 #Variable declaration and initialisation
 Child_Im = Image('09990:''90000:''90000:''90000:''09990')
@@ -13,6 +14,12 @@ pin2.set_touch_mode(pin2.CAPACITIVE)
 skip = False
 skipShake = False
 skipDirection = False
+previousOrientation = 0
+orientationChange = False
+possibleBlocks = [[0], [9, 0, 0, 9, 9, 9], [9, 0], [9, 9, 9, 9, 0, 0], [9, 9], [0, 0, 9, 9, 9, 9], [9, 9, 0, 0], [9, 9, 9, 0, 0, 9], [9, 9, 0, 0], [9, 9], [9, 0]]
+presentMatrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+tempBlock = possibleBlocks[0]
+startX = 0
 
 #What is the sound level?
 def soundDetection():
@@ -63,7 +70,30 @@ def compassOrientation():
         return(3)
     elif(compass.heading() <= 337.5):
         return(3.5)
-        
+
+def memorisedBoardShow():
+    for y in range(5):
+        for x in range(5):
+            display.set_pixel(x, y, presentMatrix[y][x])
+    sleep(1000)
+
+def newBlockShow():
+    global tempBlock
+    global startX
+    display.scroll(startX)
+    for y in range(2):
+        for x in range(startX, int(startX + (len(tempBlock) / 2))):
+            presentMatrix[y][x] = tempBlock[(x - startX) + (y * startX)]
+
+def playGame():
+    global tempBlock
+    global startX
+    if(tempBlock[0] == 0):
+        tempBlock = possibleBlocks[int(random.randint(1, 10))]
+        startX = int(random.randint(0, (5 - int((len(tempBlock)) / 2))))
+    newBlockShow()
+    memorisedBoardShow()
+
 #What button is pressed?
 def buttonPress(buttons):
     if(buttons == 1):
@@ -143,8 +173,10 @@ while(True):
             elif(lightLevel >= 70):
                 print("It's getting too bright")
             #Orientation stuff
-            OrientationGesture = moveDirection()
             OrientationCompass = compassOrientation()
+            if(not (OrientationCompass == previousOrientation)):
+                orientationChange = True
+            previousOrientation = OrientationCompass
             #Sleep Alarm trigger:
             #The if-elif cases are ranked from worse to best because the baby might be in a quite environnement but have fallen.
             #So worse case has to be detected first and certainly not be outruled by something less dangerous.
@@ -152,7 +184,7 @@ while(True):
                 print("Baby might be crying")
             elif(soundLevel == 2 or degreesDanger == -1 or degreesDanger == 1):
                 print("Baby is most certainly awake")
-            elif(soundLevel == 1 or moveLevel == 1):
+            elif(soundLevel == 1 or moveLevel == 1 or orientationChange):
                 print("Baby might be awake")
     
     #Menu used to manage milk intake
@@ -160,6 +192,21 @@ while(True):
         if(first):
             display.scroll("Milk doses day " + str(day - (len(milkPerDay) - 1)) + " = " + str(milkPerDay[day]), 100)
             first = False
+
+    #Game Menu
+    elif(menu == "Tetris"):
+        if(first):
+            display.scroll("This is the game Tetris", 100)
+            sleep(750)
+            display.scroll("Button A = to the left", 100)
+            sleep(750)
+            display.scroll("Button B = to the right", 100)
+            sleep(750)
+            display.scroll("Let's go!", 100)
+            first = False
+        if(button_a.was_pressed()):
+            tempBlock = possibleBlocks[0]
+        playGame()
     
     #Button use
     if(buttonPress(1)):
@@ -172,6 +219,9 @@ while(True):
             first = True
             day = len(milkPerDay) - 1
         elif(menu == 'Milk'):
+            menu = 'Tetris'
+            first = True
+        elif(menu == 'Tetris'):
             menu = 'Id'
             first = True
     elif(buttonPress(2)):
