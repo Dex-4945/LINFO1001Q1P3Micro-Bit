@@ -206,6 +206,8 @@ while(True):
             first = False
         if(button_a.was_pressed()):
             tempBlock = possibleBlocks[0]
+            presentMatrix[0] = [0, 0, 0, 0, 0]
+            presentMatrix[1] = [0, 0, 0, 0, 0]
         playGame()
     
     #Button use
