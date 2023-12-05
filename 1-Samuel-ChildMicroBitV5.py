@@ -77,13 +77,15 @@ def memorisedBoardShow():
             display.set_pixel(x, y, presentMatrix[y][x])
     sleep(1000)
 
-def newBlockShow():
+def newBlockAddToMatrix():
     global tempBlock
     global startX
     display.scroll(startX)
+    presentMatrix[0] = [0, 0, 0, 0, 0]
+    presentMatrix[1] = [0, 0, 0, 0, 0]
     for y in range(2):
         for x in range(startX, int(startX + (len(tempBlock) / 2))):
-            presentMatrix[y][x] = tempBlock[(x - startX) + (y * startX)]
+            presentMatrix[y][x] = tempBlock[int((x - startX) + (y*(len(tempBlock)/2)))]
 
 def playGame():
     global tempBlock
@@ -91,7 +93,7 @@ def playGame():
     if(tempBlock[0] == 0):
         tempBlock = possibleBlocks[int(random.randint(1, 10))]
         startX = int(random.randint(0, (5 - int((len(tempBlock)) / 2))))
-    newBlockShow()
+    newBlockAddToMatrix()
     memorisedBoardShow()
 
 #What button is pressed?
@@ -204,10 +206,6 @@ while(True):
             sleep(750)
             display.scroll("Let's go!", 100)
             first = False
-        if(button_a.was_pressed()):
-            tempBlock = possibleBlocks[0]
-            presentMatrix[0] = [0, 0, 0, 0, 0]
-            presentMatrix[1] = [0, 0, 0, 0, 0]
         playGame()
     
     #Button use
@@ -235,6 +233,9 @@ while(True):
             display.scroll("No older data", 100)
             display.clear()
             first = True
+        elif(menu== 'Tetris'):
+            if(not (startX == 0)):
+                startX -= 1
     elif(buttonPress(3)):
         if(menu == 'Milk' and day < len(milkPerDay) - 1):
             day += 1
@@ -244,6 +245,9 @@ while(True):
             display.scroll("This is today", 100)
             display.clear()
             first = True
+        elif(menu == 'Tetris'):
+            if(not (startX == (5 - (len(tempBlock)/2)))):
+                startX += 1
     elif(buttonPress(4)):
         sleep(1)
     elif(buttonPress(5)):
@@ -254,3 +258,11 @@ while(True):
             dosesAmount = 0
             first = True
             sleep(1000)
+        elif(menu == 'Tetris'):
+            tempBlock = possibleBlocks[0]
+
+
+
+
+
+
