@@ -16,10 +16,18 @@ skipShake = False
 skipDirection = False
 previousOrientation = 0
 orientationChange = False
-possibleBlocks = [[0], [9, 0, 0, 9, 9, 9], [9, 0], [9, 9, 9, 9, 0, 0], [9, 9], [0, 0, 9, 9, 9, 9], [9, 9, 0, 0], [9, 9, 9, 0, 0, 9], [9, 9, 0, 0], [9, 9], [9, 0]]
-presentMatrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
-tempBlock = possibleBlocks[0]
+turningSequenceAngles = [1, 3, 5, 8]
+chosenBlockIndex = 0
+blockHeight = [0, 2, 1, 2, 2, 2, 1, 1, 2, 2, 1]
+possibleBlocks = [[], [9, 9, 9, 0], [9, 0], [9, 9, 0, 9], [9, 9], [0, 9, 9, 9], [9, 0], [9, 9, 0, 0], [9, 0, 9, 9], [9, 9], [9, 0]]
+initialMatrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+tempBlock = possibleBlocks[chosenBlockIndex]
 startX = 0
+startY = 0
+mayFall = False
+gameOver = 0
+score = 0
+gOmessage = False
 
 #What is the sound level?
 def soundDetection():
@@ -71,30 +79,172 @@ def compassOrientation():
     elif(compass.heading() <= 337.5):
         return(3.5)
 
-def memorisedBoardShow():
+def matrixAndTempBoardShow():
+    global startX
     for y in range(5):
         for x in range(5):
-            display.set_pixel(x, y, presentMatrix[y][x])
-    sleep(1000)
+            display.set_pixel(x, y, initialMatrix[y][x])
+            if((x >= startX and x <= int(startX + (len(tempBlock) / 2) - 1))):
+                if(y == startY and not (tempBlock[int(x - startX)] == 0)):
+                    display.set_pixel(x, y, tempBlock[int(x - startX)])
+                if(y == startY + 1 and blockHeight[chosenBlockIndex] == 2 and not (tempBlock[int(x - startX) + int(len(tempBlock) / 2)] == 0)):
+                    display.set_pixel(x, y, tempBlock[int((x - startX) + int(len(tempBlock) / 2))])
+    sleep(500)
 
-def newBlockAddToMatrix():
+def isGameOver():
+    global gameOver
+    global score
+    for y in range(2):
+        if(not (initialMatrix[y] == [0, 0, 0, 0, 0])):
+            score -= 1
+            return(1)
+    return(0)
+
+def removeCompleteLines():
+    global initialMatrix
+    for y in range(5):
+        if(initialMatrix[y] == [9, 9, 9, 9, 9]):
+            initialMatrix[y] = [0, 0, 0, 0, 0]
+            for h in range(y, 2, -1):
+                initialMatrix[h] = initialMatrix[h - 1]
+            initialMatrix[2] = [0, 0, 0, 0, 0]
+
+def newBlockAddToInitMatrix():
+    global initialMatrix
+    global score
+    global gameOver
+    global gOmessage
+    if(blockHeight[chosenBlockIndex] == 1):
+        for x in range(startX, int(startX + (len(tempBlock) / 2))):
+            if(not (tempBlock[int(x - startX)] == 0)):
+                initialMatrix[startY][x] = tempBlock[int((x - startX))]
+    elif(blockHeight[chosenBlockIndex] == 2):
+        for y in range(2):
+            for x in range(startX, int(startX + (len(tempBlock) / 2))):
+                if(not (tempBlock[int(x - startX) + int(y * (len(tempBlock) / 2))] == 0)):
+                    initialMatrix[startY + y][x] = tempBlock[int((x - startX) + (y*(len(tempBlock)/2)))]
+    score += 1
+    resetTetrisVar()
+    removeCompleteLines()
+    gameOver = isGameOver()
+    if(gameOver):
+        gOmessage = True
+
+def canFallH1():
+    for x in range(startX, int(startX + (len(tempBlock) / 2))):
+        if(not (initialMatrix[startY + 1][x] == 0)):
+            return(0)
+    return(1)
+
+def canFallH2():
+    for y in range(1, -1, -1):
+        for x in range(startX, int(startX + (len(tempBlock) / 2))):
+            if((not (tempBlock[int((x - startX) + (y * (len(tempBlock)/2)))] == 0)) and (not (initialMatrix[startY + y + 1][x] == 0))):
+                return(0)
+    return(1)
+
+def fall():
+    global startY
+    global mayFall
+    if(blockHeight[chosenBlockIndex] == 1):
+        if(canFallH1()):
+            startY += 1
+        else:
+            mayFall = False
+            newBlockAddToInitMatrix()
+        if(startY == 4):
+            mayFall = False
+            newBlockAddToInitMatrix()
+    elif(blockHeight[chosenBlockIndex] == 2):
+        if(canFallH2() == 1):
+            startY += 1
+        else:
+            mayFall = False
+            newBlockAddToInitMatrix()
+        if(startY == 3):
+            mayFall = False
+            newBlockAddToInitMatrix()
+
+def resetTetrisVar():
+    global chosenBlockIndex
+    global startY
+    chosenBlockIndex = 0
+    startY = 0
+
+def allReset():
+    global chosenBlockIndex
+    global blockHeight
+    global possibleBlocks
+    global initialMatrix
     global tempBlock
     global startX
-    display.scroll(startX)
-    presentMatrix[0] = [0, 0, 0, 0, 0]
-    presentMatrix[1] = [0, 0, 0, 0, 0]
-    for y in range(2):
-        for x in range(startX, int(startX + (len(tempBlock) / 2))):
-            presentMatrix[y][x] = tempBlock[int((x - startX) + (y*(len(tempBlock)/2)))]
+    global startY
+    global mayFall
+    global gameOver
+    global score
+    chosenBlockIndex = 0
+    blockHeight = [0, 2, 1, 2, 2, 2, 1, 1, 2, 2, 1]
+    possibleBlocks = [[], [9, 9, 9, 0], [9, 0], [9, 9, 0, 9], [9, 9], [0, 9, 9, 9], [9, 0], [9, 9, 0, 0], [9, 0, 9, 9], [9, 9], [9, 0]]
+    initialMatrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+    tempBlock = possibleBlocks[chosenBlockIndex]
+    startX = 0
+    startY = 0
+    mayFall = False
+    gameOver = 0
+    score = 0
+
+def rotateLeft():
+    global chosenBlockIndex
+    for i, elem in enumerate(turningSequenceAngles):
+        if(chosenBlockIndex == elem):
+            if(i == 3):
+                chosenBlockIndex = turningSequenceAngles[0]
+            else:
+                chosenBlockIndex = turningSequenceAngles[i + 1]
+            break
+    if(chosenBlockIndex == 4 or chosenBlockIndex == 9):
+        chosenBlockIndex = 7
+    elif(chosenBlockIndex == 7):
+        chosenBlockIndex = 4
+            
+def rotateRight():
+    global chosenBlockIndex
+    for i, elem in enumerate(turningSequenceAngles):
+        if(chosenBlockIndex == elem):
+            if(i == 0):
+                chosenBlockIndex = turningSequenceAngles[3]
+            else:
+                chosenBlockIndex = turningSequenceAngles[i - 1]
+            break
+    if(chosenBlockIndex == 4 or chosenBlockIndex == 9):
+        chosenBlockIndex = 7
+    elif(chosenBlockIndex == 9):
+        chosenBlockIndex = 7
 
 def playGame():
+    global chosenBlockIndex
     global tempBlock
     global startX
-    if(tempBlock[0] == 0):
-        tempBlock = possibleBlocks[int(random.randint(1, 10))]
-        startX = int(random.randint(0, (5 - int((len(tempBlock)) / 2))))
-    newBlockAddToMatrix()
-    memorisedBoardShow()
+    global gOmessage
+    print(chosenBlockIndex)
+    if(gameOver):
+        if(gOmessage):
+            display.scroll('Game Over, your score is ' + str(score) + '.', 100)
+            sleep(500)
+            display.scroll(' Press on button "A" for a new game', 100)
+            sleep(500)
+            gOmessage = False
+        else:
+            display.scroll(str(score), 50)
+            sleep(500)
+    else:
+        if(chosenBlockIndex == 0):
+            chosenBlockIndex = int(random.randint(1, len(possibleBlocks) - 1))
+            tempBlock = possibleBlocks[chosenBlockIndex]
+            startX = int(random.randint(0, (5 - int((len(tempBlock)) / 2))))
+        matrixAndTempBoardShow()
+        if(mayFall):
+            fall()
 
 #What button is pressed?
 def buttonPress(buttons):
@@ -223,6 +373,7 @@ while(True):
             first = True
         elif(menu == 'Tetris'):
             menu = 'Id'
+            allReset()
             first = True
     elif(buttonPress(2)):
         if(menu == 'Milk' and day > 0):
@@ -234,8 +385,11 @@ while(True):
             display.clear()
             first = True
         elif(menu== 'Tetris'):
-            if(not (startX == 0)):
-                startX -= 1
+            if(gameOver):
+                allReset()
+            else:
+                if(not (startX == 0)):
+                    startX -= 1
     elif(buttonPress(3)):
         if(menu == 'Milk' and day < len(milkPerDay) - 1):
             day += 1
@@ -249,9 +403,13 @@ while(True):
             if(not (startX == (5 - (len(tempBlock)/2)))):
                 startX += 1
     elif(buttonPress(4)):
-        sleep(1)
+        if(menu == 'Tetris'):
+            rotateLeft()
+            tempBlock = possibleBlocks[chosenBlockIndex]
     elif(buttonPress(5)):
-        sleep(1)
+        if(menu == 'Tetris'):
+            rotateRight()
+            tempBlock = possibleBlocks[chosenBlockIndex]
     elif(buttonPress(6)):
         if(menu == 'Milk'):
             display.scroll("Reset today's doses", 100)
@@ -259,10 +417,7 @@ while(True):
             first = True
             sleep(1000)
         elif(menu == 'Tetris'):
-            tempBlock = possibleBlocks[0]
-
-
-
-
-
-
+            if(gameOver):
+                allReset()
+            else:
+                mayFall = True
