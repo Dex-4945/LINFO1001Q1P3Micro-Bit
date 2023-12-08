@@ -38,6 +38,7 @@ def soundDetection():
     elif(microphone.sound_level() >= 102 and microphone.sound_level() <= 255):
         return(3)
 
+#How dangerous is the movement?
 def moveDanger():
     global skip
     global skipShake
@@ -61,6 +62,7 @@ def moveDanger():
         return(1)
     return(0)
 
+#What direction is the baby pointing towards?
 def compassOrientation():
     if(compass.heading() >= 337.5 or compass.heading() <= 22.5):
         return(0)
@@ -79,6 +81,7 @@ def compassOrientation():
     elif(compass.heading() <= 337.5):
         return(3.5)
 
+#displays the current state of the tetris board
 def matrixAndTempBoardShow():
     global startX
     for y in range(5):
@@ -91,6 +94,7 @@ def matrixAndTempBoardShow():
                     display.set_pixel(x, y, tempBlock[int((x - startX) + int(len(tempBlock) / 2))])
     sleep(500)
 
+#Is the tetris game over? Meaning is there a part of block that is stuck on the second row of leds?
 def isGameOver():
     global gameOver
     global score
@@ -100,6 +104,7 @@ def isGameOver():
             return(1)
     return(0)
 
+#When a line is entirely filled, we have to remove it and make all the other lines fall
 def removeCompleteLines():
     global initialMatrix
     for y in range(5):
@@ -109,6 +114,8 @@ def removeCompleteLines():
                 initialMatrix[h] = initialMatrix[h - 1]
             initialMatrix[2] = [0, 0, 0, 0, 0]
 
+#When a block has been placed, we memorise it to the board and reset the necessary variables to allow a new block to spawn on top of the game
+#We also test if there are full lines to remove, and if the game is actually over.
 def newBlockAddToInitMatrix():
     global initialMatrix
     global score
@@ -130,12 +137,14 @@ def newBlockAddToInitMatrix():
     if(gameOver):
         gOmessage = True
 
+#For a block having a height of 1 pixel, can it fall? Meaning there isn't already a block where it wants to fall
 def canFallH1():
     for x in range(startX, int(startX + (len(tempBlock) / 2))):
         if(not (initialMatrix[startY + 1][x] == 0)):
             return(0)
     return(1)
 
+#For a block having a height of 2 pixels, can it fall? Meaning there isn't already a block where it wants to fall
 def canFallH2():
     for y in range(1, -1, -1):
         for x in range(startX, int(startX + (len(tempBlock) / 2))):
@@ -143,6 +152,7 @@ def canFallH2():
                 return(0)
     return(1)
 
+#If a block can fall, then we make it.
 def fall():
     global startY
     global mayFall
@@ -165,12 +175,14 @@ def fall():
             mayFall = False
             newBlockAddToInitMatrix()
 
+#after a block has been memorised to the board, we reset the necessary variables to allow a new block to spawn
 def resetTetrisVar():
     global chosenBlockIndex
     global startY
     chosenBlockIndex = 0
     startY = 0
 
+#To start a new game, we have to reset all the variables necessary to the game
 def allReset():
     global chosenBlockIndex
     global blockHeight
@@ -193,6 +205,7 @@ def allReset():
     gameOver = 0
     score = 0
 
+#To rotate a block to the left side, we simply call the same block, but rotated, from the list that contains the indexes of those similar blocks.
 def rotateLeft():
     global chosenBlockIndex
     for i, elem in enumerate(turningSequenceAngles):
@@ -206,7 +219,8 @@ def rotateLeft():
         chosenBlockIndex = 7
     elif(chosenBlockIndex == 7):
         chosenBlockIndex = 4
-            
+
+#Same than rotateLeft() but to the right
 def rotateRight():
     global chosenBlockIndex
     for i, elem in enumerate(turningSequenceAngles):
@@ -221,6 +235,7 @@ def rotateRight():
     elif(chosenBlockIndex == 9):
         chosenBlockIndex = 7
 
+#Main function of the Tetris game
 def playGame():
     global chosenBlockIndex
     global tempBlock
@@ -269,11 +284,12 @@ def buttonPress(buttons):
     else:
         return False
 
-#Main program
+#Main loop
 while(True):
     #Compass calibration
     if(not (compass.is_calibrated())):
         compass.calibrate()
+    
     #Identifies the Be:bi as the "Child" one by displaying a 'C'
     if(menu == 'Id'):
         display.show(Child_Im)
