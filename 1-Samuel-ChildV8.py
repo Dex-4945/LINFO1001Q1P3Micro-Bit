@@ -441,7 +441,7 @@ while(True):
                 alarmSend[0] = 3
             elif(alarmSend[2] == 2 or alarmSend[3] == 2):
                 alarmSend[0] = 2
-            elif(alarmSend[2] == 1 or alarmSend[4] == 1 or alarmSend[1] == 1 or alarmSend[3] == 1):
+            elif(alarmSend[2] == 1 or alarmSend[4] == 1 or alarmSend[1] == 1):
                 alarmSend[0] = 1
             else:
                 alarmSend[0] = 0
