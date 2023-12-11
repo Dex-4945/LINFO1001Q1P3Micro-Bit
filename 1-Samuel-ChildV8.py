@@ -29,6 +29,8 @@ matrixSleep = [[0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 
 matrixDelta = [[0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0]]
 max = [0, 0]
 alarmSend = [0, 0, 0, 0, 0]
+radio.config(group=23, channel=2, address=0x11111111)
+radio.on()
 
 #What is the sound level?
 def soundDetection():
