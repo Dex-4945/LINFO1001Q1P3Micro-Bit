@@ -1,9 +1,9 @@
 #Child Code
 from microbit import *
 import random
+import radio
 
 #Variable declaration and initialisation
-Child_Im = Image('09990:''90000:''90000:''90000:''09990')
 menu = 'Id'
 first = True
 milkPerDay = [10, 15, 7, 9]
@@ -11,11 +11,8 @@ day = 0
 pin0.set_touch_mode(pin0.CAPACITIVE)
 pin1.set_touch_mode(pin1.CAPACITIVE)
 pin2.set_touch_mode(pin2.CAPACITIVE)
-skip = False
 skipShake = False
-skipDirection = False
 previousOrientation = 0
-orientationChange = False
 turningSequenceAngles = [1, 3, 5, 8]
 chosenBlockIndex = 0
 blockHeight = [0, 2, 1, 2, 2, 2, 1, 1, 2, 2, 1]
@@ -28,6 +25,10 @@ mayFall = False
 gameOver = 0
 score = 0
 gOmessage = False
+matrixSleep = [[0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0]]
+matrixDelta = [[0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0]]
+max = [0, 0]
+alarmSend = [0, 0, 0, 0, 0]
 
 #What is the sound level?
 def soundDetection():
@@ -37,12 +38,11 @@ def soundDetection():
         return(2)
     elif(microphone.sound_level() >= 102 and microphone.sound_level() <= 255):
         return(3)
+    return(0)
 
 #How dangerous is the movement?
 def moveDanger():
-    global skip
     global skipShake
-    global skipDirection
     #I noticed that after a "freefall" gesture the next gesture was always "shake".
     #The use of the "fskipShake" variable prevents that right after a freefall, 
     #a shake event be triggered by making the check for "shake" be skipped for one iteration after a freefall. 
@@ -261,6 +261,106 @@ def playGame():
         if(mayFall):
             fall()
 
+def shiny():
+    global first
+    global matrixDelta
+    global matrixSleep
+    global counter
+    if(first):
+        for y in range(5):
+            for x in range(5):
+                matrixSleep[y][x] = int(random.randint(4, 9))
+                matrixDelta[y][x] = (random.random() * 1.5)
+        first = False
+    for y in range(5):
+        for x in range(5):
+            matrixSleep[y][x] += matrixDelta[y][x]
+            if(matrixSleep[y][x] >= 9 or matrixSleep[y][x] <= 2):
+                matrixDelta[y][x] *= -1
+                matrixSleep[y][x] += matrixDelta[y][x]
+    for y in range(5):
+        for x in range(5):
+            display.set_pixel(x, y, int(matrixSleep[y][x]))
+    sleep(100)
+
+def alarmSet():
+    global alarmSend
+    max = [0, 0]
+    for i, elem in enumerate(alarmSend):
+        if(not (i == 0) and elem >= max[1]):
+            max[0] = i
+            max[1] = elem
+    messageClear = ''
+    messageClear += str(alarmSend[0])
+    messageClear += str(max[0])
+    messageClear += str(max[1])
+    print(messageClear)
+    sleep(1000)
+    return(messageClear)
+
+def hashing(string):
+	"""
+	Hachage d'une chaîne de caractères fournie en paramètre.
+	Le résultat est une chaîne de caractères.
+	Attention : cette technique de hachage n'est pas suffisante (hachage dit cryptographique) pour une utilisation en dehors du cours.
+
+	:param (str) string: la chaîne de caractères à hacher
+	:return (str): le résultat du hachage
+	"""
+	def to_32(value):
+		"""
+		Fonction interne utilisée par hashing.
+		Convertit une valeur en un entier signé de 32 bits.
+		Si 'value' est un entier plus grand que 2 ** 31, il sera tronqué.
+
+		:param (int) value: valeur du caractère transformé par la valeur de hachage de cette itération
+		:return (int): entier signé de 32 bits représentant 'value'
+		"""
+		value = value % (2 ** 32)
+		if value >= 2**31:
+			value = value - 2 ** 32
+		value = int(value)
+		return value
+
+	if string:
+		x = ord(string[0]) << 7
+		m = 1000003
+		for c in string:
+			x = to_32((x*m) ^ ord(c))
+		x ^= len(string)
+		if x == -1:
+			x = -2
+		return str(x)
+	return ""
+    
+def vigenere(message, key, decryption=False):
+    text = ""
+    key_length = len(key)
+    key_as_int = [ord(k) for k in key]
+
+    for i, char in enumerate(str(message)):
+        key_index = i % key_length
+        #Letters encryption/decryption
+        if char.isalpha():
+            if decryption:
+                modified_char = chr((ord(char.upper()) - key_as_int[key_index] + 26) % 26 + ord('A'))
+            else : 
+                modified_char = chr((ord(char.upper()) + key_as_int[key_index] - 26) % 26 + ord('A'))
+            #Put back in lower case if it was
+            if char.islower():
+                modified_char = modified_char.lower()
+            text += modified_char
+        #Digits encryption/decryption
+        elif char.isdigit():
+            if decryption:
+                modified_char = str((int(char) - key_as_int[key_index]) % 10)
+            else:  
+                modified_char = str((int(char) + key_as_int[key_index]) % 10)
+            text += modified_char
+        else:
+            text += char
+    return text
+
 #What button is pressed?
 def buttonPress(buttons):
     if(buttons == 1):
@@ -292,7 +392,7 @@ while(True):
     
     #Identifies the Be:bi as the "Child" one by displaying a 'C'
     if(menu == 'Id'):
-        display.show(Child_Im)
+        display.show(Image('09990:''90000:''90000:''90000:''09990'))
         if(first):
             sleep(1000)
             first = False
@@ -304,56 +404,46 @@ while(True):
             first = False
         else:
             #Sound stuff
-            soundLevel = soundDetection()
-            if(soundLevel == 1):
-                print("There's a little sound")
-            elif(soundLevel == 2):
-                print("There's too much sound")
-            elif(soundLevel == 3):
-                print("There's way too much sound")
+            alarmSend[2] = soundDetection()
             #Movement stuff
-            moveLevel = moveDanger()
-            if(moveLevel == 1):
-                print("baby is moving")
-            elif(moveLevel == 2):
-                print("Baby has been shaken")
-            elif(moveLevel == 3):
-                print("Baby is falling")
+            alarmSend[4] = moveDanger()
             #Temperature stuff
             degrees = temperature()
-            degreesDanger = 0
+            if(degrees > 15 and degrees < 27):
+                alarmSend[3] = 0
             if(degrees <= 5):
-                degreesDanger = -2
-                print("Baby is in danger of hypothermia")
+                alarmSend[3] = 3
             elif(degrees <= 15):
-                degreesDanger = -1
-                print("It's getting too cold")
-            elif(degrees >= 27):
-                degreesDanger = 1
-                print("It's getting too hot")
+                alarmSend[3] = 2
             elif(degrees >= 35):
-                degreesDanger = 2
-                print("Baby is in danger of hyperthermia")
+                alarmSend[3] = 3
+            elif(degrees >= 27):
+                alarmSend[3] = 2
             #Luminosity stuff
             lightLevel = display.read_light_level()
-            if(lightLevel >= 20):
-                print("It's getting bright")
+            if(lightLevel >= 20 and lightLevel < 70):
+                alarmSend[1] = 1
             elif(lightLevel >= 70):
-                print("It's getting too bright")
+                alarmSend[1] = 3
+            else:
+                alarmSend[1] = 0
             #Orientation stuff
             OrientationCompass = compassOrientation()
             if(not (OrientationCompass == previousOrientation)):
-                orientationChange = True
+                alarmSend[4] = 1
             previousOrientation = OrientationCompass
             #Sleep Alarm trigger:
             #The if-elif cases are ranked from worse to best because the baby might be in a quite environnement but have fallen.
             #So worse case has to be detected first and certainly not be outruled by something less dangerous.
-            if(soundLevel == 3 or moveLevel == 2 or moveLevel == 3 or degreesDanger == -2 or degreesDanger == 2):
-                print("Baby might be crying")
-            elif(soundLevel == 2 or degreesDanger == -1 or degreesDanger == 1):
-                print("Baby is most certainly awake")
-            elif(soundLevel == 1 or moveLevel == 1 or orientationChange):
-                print("Baby might be awake")
+            if(alarmSend[2] == 3 or alarmSend[4] >= 2 or alarmSend[3] == 3 or alarmSend[1] == 3):
+                alarmSend[0] = 3
+            elif(alarmSend[2] == 2 or alarmSend[3] == 2):
+                alarmSend[0] = 2
+            elif(alarmSend[2] == 1 or alarmSend[4] == 1 or alarmSend[1] == 1 or alarmSend[3] == 1):
+                alarmSend[0] = 1
+            else:
+                alarmSend[0] = 0
+            radio.send(alarmSet())
     
     #Menu used to manage milk intake
     elif(menu == 'Milk'):
@@ -364,14 +454,7 @@ while(True):
     #Game Menu
     elif(menu == "Tetris"):
         if(first):
-            display.scroll("This is the game Tetris", 100)
-            sleep(750)
-            display.scroll("Button A = to the left", 100)
-            sleep(750)
-            display.scroll("Button B = to the right", 100)
-            sleep(750)
-            display.scroll("Let's go!", 100)
-            first = False
+            display.scroll("Tetris", 100)
         playGame()
     
     #Button use
