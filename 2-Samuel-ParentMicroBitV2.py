@@ -1,3 +1,22 @@
+#When one micro:bit changes its menu, send message to make the other one change menu as well
+#Receive radio message correctly
+#Check if already received
+#Know what the message code means
+#Activate correct function
+#Code reaction to every code that might be send
+#Send answer back.
+
+
+
+
+
+
+
+
+
+
+
+
 #Parent code
 from microbit import *
 
