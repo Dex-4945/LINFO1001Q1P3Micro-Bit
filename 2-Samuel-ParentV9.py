@@ -389,6 +389,7 @@ while(True):
                 if(testReceived == 1):
                     changeMenu = True
                     testGood = True
+		    key += str(deterFunc(int(randomNumber)))
                 else:
                     display.scroll('Error', 100)
     
