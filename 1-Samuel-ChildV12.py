@@ -2,17 +2,16 @@
 from microbit import *
 import random
 import radio
+import music
 
 #Variable declaration and initialisation
 menu = 'Id'
 first = True
-milkPerDay = [10, 15, 7, 9]
-day = 0
+milkDose = 0
 pin0.set_touch_mode(pin0.CAPACITIVE)
 pin1.set_touch_mode(pin1.CAPACITIVE)
 pin2.set_touch_mode(pin2.CAPACITIVE)
 skipShake = False
-previousOrientation = 0
 turningSequenceAngles = [1, 3, 5, 8]
 chosenBlockIndex = 0
 blockHeight = [0, 2, 1, 2, 2, 2, 1, 1, 2, 2, 1]
@@ -31,16 +30,27 @@ max = [0, 0]
 alarmSend = [0, 0, 0, 0, 0]
 radio.config(group=23, channel=2, address=0x11111111)
 radio.on()
+key = 'bonjour'
+nonce = 0
+firstShine = True
+speaker.on()
+set_volume(0)
+
+changeMenu = False
+randomNumber = int(random.random() * 100)
+testGood = False
+count = 0
+test = False
+messageReceived = ''
 
 #What is the sound level?
 def soundDetection():
-    if(microphone.sound_level() >= 102 and microphone.sound_level() <= 153):
+    if(microphone.sound_level() <= 40):
         return(1)
-    elif(microphone.sound_level() >= 102 and microphone.sound_level() <= 204):
+    elif(microphone.sound_level() <= 75):
         return(2)
-    elif(microphone.sound_level() >= 102 and microphone.sound_level() <= 255):
+    else:
         return(3)
-    return(0)
 
 #How dangerous is the movement?
 def moveDanger():
@@ -63,25 +73,6 @@ def moveDanger():
     elif((accelerometer.was_gesture('up') or accelerometer.was_gesture('down') or accelerometer.was_gesture('face up') or accelerometer.was_gesture('face down') or accelerometer.was_gesture('left') or accelerometer.was_gesture('right')) and (abs(accelerometer.get_strength()) >= 1000)):
         return(1)
     return(0)
-
-#What direction is the baby pointing towards?
-def compassOrientation():
-    if(compass.heading() >= 337.5 or compass.heading() <= 22.5):
-        return(0)
-    elif(compass.heading() <= 67.5):
-        return(0.5)
-    elif(compass.heading() <= 112.5):
-        return(1)
-    elif(compass.heading() <= 157.5):
-        return(1.5)
-    elif(compass.heading() <= 202.5):
-        return(2)
-    elif(compass.heading() <= 247.5):
-        return(2.5)
-    elif(compass.heading() <= 292.5):
-        return(3)
-    elif(compass.heading() <= 337.5):
-        return(3.5)
 
 #displays the current state of the tetris board
 def matrixAndTempBoardShow():
@@ -247,13 +238,10 @@ def playGame():
     if(gameOver):
         if(gOmessage):
             display.scroll('Game Over, your score is ' + str(score) + '.', 100)
-            sleep(500)
-            display.scroll(' Press on button "A" for a new game', 100)
-            sleep(500)
+            display.scroll('Button "A" for a new game', 100)
             gOmessage = False
         else:
             display.scroll(str(score), 50)
-            sleep(500)
     else:
         if(chosenBlockIndex == 0):
             chosenBlockIndex = int(random.randint(1, len(possibleBlocks) - 1))
@@ -263,30 +251,10 @@ def playGame():
         if(mayFall):
             fall()
 
-def shiny():
-    global first
-    global matrixDelta
-    global matrixSleep
-    global counter
-    if(first):
-        for y in range(5):
-            for x in range(5):
-                matrixSleep[y][x] = int(random.randint(4, 9))
-                matrixDelta[y][x] = (random.random() * 1.5)
-        first = False
-    for y in range(5):
-        for x in range(5):
-            matrixSleep[y][x] += matrixDelta[y][x]
-            if(matrixSleep[y][x] >= 9 or matrixSleep[y][x] <= 2):
-                matrixDelta[y][x] *= -1
-                matrixSleep[y][x] += matrixDelta[y][x]
-    for y in range(5):
-        for x in range(5):
-            display.set_pixel(x, y, int(matrixSleep[y][x]))
-    sleep(100)
-
 def alarmSet():
     global alarmSend
+    global key
+    global nonce
     max = [0, 0]
     for i, elem in enumerate(alarmSend):
         if(not (i == 0) and elem >= max[1]):
@@ -296,8 +264,16 @@ def alarmSet():
     messageClear += str(alarmSend[0])
     messageClear += str(max[0])
     messageClear += str(max[1])
+    temp = vigenere(messageClear, key, False)
+    messageClear = vigenere('0x03|', key, False)
+    end = vigenere(str(nonce), key, False)
+    end += ':'
+    end += temp
+    messageClear += str(len(end))
+    messageClear += '|'
+    messageClear += end
+    nonce += 1
     print(messageClear)
-    sleep(1000)
     return(messageClear)
 
 def hashing(string):
@@ -335,7 +311,7 @@ def hashing(string):
 		return str(x)
 	return ""
     
-def vigenere(message, key, decryption=False):
+def vigenere(message, key, decryption):
     text = ""
     key_length = len(key)
     key_as_int = [ord(k) for k in key]
@@ -363,28 +339,24 @@ def vigenere(message, key, decryption=False):
             text += char
     return text
 
-#What button is pressed?
-def buttonPress(buttons):
-    if(buttons == 1):
-        if((pin_logo.is_touched()) and not (button_a.was_pressed()) and not (button_b.was_pressed()) and not (pin0.is_touched()) and not (pin1.is_touched()) and not (pin2.is_touched())):
-            return (True)
-    elif(buttons == 2):
-        if(not (pin_logo.is_touched()) and (button_a.was_pressed()) and not (button_b.was_pressed()) and not (pin0.is_touched()) and not (pin1.is_touched()) and not (pin2.is_touched())):
-            return (True)
-    elif(buttons == 3):
-        if(not (pin_logo.is_touched()) and not (button_a.was_pressed()) and (button_b.was_pressed()) and not (pin0.is_touched()) and not (pin1.is_touched()) and not (pin2.is_touched())):
-            return (True)
-    elif(buttons == 4):
-        if(not (pin_logo.is_touched()) and not (button_a.was_pressed()) and not (button_b.was_pressed()) and (pin0.is_touched()) and not (pin1.is_touched()) and not (pin2.is_touched())):
-            return (True)
-    elif(buttons == 5):
-        if(not (pin_logo.is_touched()) and not (button_a.was_pressed()) and not (button_b.was_pressed()) and not (pin0.is_touched()) and (pin1.is_touched()) and not (pin2.is_touched())):
-            return (True)
-    elif(buttons == 6):
-        if(not (pin_logo.is_touched()) and not (button_a.was_pressed()) and not (button_b.was_pressed()) and not (pin0.is_touched()) and not (pin1.is_touched()) and (pin2.is_touched())):
-            return (True)
-    else:
-        return False
+def deterFunc(seed):
+    return(str(int((seed * 500) / 137)))
+
+def passwordTest():
+    global randomNumber
+    global nonce
+    print(randomNumber)
+    test = vigenere('0x01|', key, False)
+    end = vigenere(randomNumber, key, False)
+    randomNumber = str(randomNumber)
+    test += str(len(randomNumber) + 2)
+    test += '|'
+    test += vigenere(nonce, key, False)
+    test += ':'
+    test += end
+    radio.send(test)
+    nonce += 1
+    print(test)
 
 #Main loop
 while(True):
@@ -394,11 +366,39 @@ while(True):
     
     #Identifies the Be:bi as the "Child" one by displaying a 'C'
     if(menu == 'Id'):
-        display.show(Image('09990:''90000:''90000:''90000:''09990'))
-        if(first):
-            sleep(1000)
-            first = False
-    
+        if(count <= 500):
+            display.show(Image('09990:''90000:''90000:''90000:''09990'))
+            if(testGood == False):
+                count = 0
+        elif(testGood and count >= 500):
+            display.show(Image('00000:''00009:''00090:''90900:''09000'))
+            if(count >= 1000):
+                count = 0
+        count += 1
+        if(test == True):
+            testReceived = str(radio.receive())
+            if(not (testReceived == 'None')):
+                testReceived = testReceived.split('|')
+                if(vigenere(testReceived[0], key, True) == '0x01'):
+                    testReceived = testReceived[2].split(':')
+                    #testReceived will now contain H(F(A)) as an int
+                    testReceived = vigenere(testReceived[1], key, True)
+                    print(testReceived)
+                    if(testReceived == hashing(deterFunc(int(randomNumber)))):
+                        testGood = True
+                        changeMenu = True
+                        testReceived = vigenere('0x02|', key, False)
+                        end = vigenere(nonce, key, False)
+                        testReceived += str(len(end) + 2)
+                        testReceived += '|'
+                        testReceived += vigenere(nonce, key, False)
+                        testReceived += ':'
+                        testReceived += end
+                        radio.send(testReceived)
+                        print(testReceived)
+                    else:
+                        display.scroll('Error', 100)
+                            
     #Menu used to manage sleep of child
     elif(menu == 'Sleep'):
         if(first):
@@ -411,15 +411,15 @@ while(True):
             alarmSend[4] = moveDanger()
             #Temperature stuff
             degrees = temperature()
-            if(degrees > 15 and degrees < 27):
+            if(degrees > 23 and degrees < 35):
                 alarmSend[3] = 0
             if(degrees <= 5):
                 alarmSend[3] = 3
-            elif(degrees <= 15):
+            elif(degrees <= 23):
                 alarmSend[3] = 2
-            elif(degrees >= 35):
+            elif(degrees >= 43):
                 alarmSend[3] = 3
-            elif(degrees >= 27):
+            elif(degrees >= 35):
                 alarmSend[3] = 2
             #Luminosity stuff
             lightLevel = display.read_light_level()
@@ -429,11 +429,6 @@ while(True):
                 alarmSend[1] = 3
             else:
                 alarmSend[1] = 0
-            #Orientation stuff
-            OrientationCompass = compassOrientation()
-            if(not (OrientationCompass == previousOrientation)):
-                alarmSend[4] = 1
-            previousOrientation = OrientationCompass
             #Sleep Alarm trigger:
             #The if-elif cases are ranked from worse to best because the baby might be in a quite environnement but have fallen.
             #So worse case has to be detected first and certainly not be outruled by something less dangerous.
@@ -441,49 +436,64 @@ while(True):
                 alarmSend[0] = 3
             elif(alarmSend[2] == 2 or alarmSend[3] == 2):
                 alarmSend[0] = 2
-            elif(alarmSend[2] == 1 or alarmSend[4] == 1 or alarmSend[1] == 1):
-                alarmSend[0] = 1
+            elif(alarmSend[4] == 1 or alarmSend[1] == 1):
+                alarmSend[0] = 0
             else:
                 alarmSend[0] = 0
-            radio.send(alarmSet())
+            if not (alarmSend[0] == 0):
+                radio.send(alarmSet())
+            if (alarmSend[0] == 0 or alarmSend[0] == 1):
+                display.show(Image.ASLEEP)
+            elif(alarmSend[0] == 2 or alarmSend[0] == 3):
+                display.show(Image('09090:''09090:''00000:''90009:''09990'))
+                music.play(music.BIRTHDAY)
     
     #Menu used to manage milk intake
     elif(menu == 'Milk'):
         if(first):
-            display.scroll("Milk doses day " + str(day - (len(milkPerDay) - 1)) + " = " + str(milkPerDay[day]), 100)
+            display.scroll("Milk doses = " + str(milkDose), 100)
             first = False
+        testReceived = str(radio.receive())
+        if(not (testReceived == 'None')):
+            testReceived = testReceived.split('|')
+            if(vigenere(testReceived[0], key, True) == '0x04'):
+                testReceived = testReceived[2].split(':')
+                #testReceived will now contain H(F(A)) as an int
+                testReceived = int(vigenere(testReceived[1], key, True))
+                milkDose = testReceived
+                first = True
 
     #Game Menu
     elif(menu == "Tetris"):
         if(first):
             display.scroll("Tetris", 100)
+            first = False
         playGame()
     
     #Button use
-    if(buttonPress(1)):
-        display.clear()
+    if(pin_logo.is_touched()):
+        if(changeMenu):
+            display.clear()
+            if(menu == 'Id'):
+                menu = 'Sleep'
+                first = True
+            elif(menu == 'Sleep'):
+                menu = 'Milk'
+                first = True
+                milkQuestion = True
+            elif(menu == 'Milk'):
+                menu = 'Tetris'
+                first = True
+            elif(menu == 'Tetris'):
+                menu = 'Id'
+                allReset()
+                first = True
+                sleep(500)
+    elif(button_a.was_pressed()):
         if(menu == 'Id'):
-            menu = 'Sleep'
-            first = True
-        elif(menu == 'Sleep'):
-            menu = 'Milk'
-            first = True
-            day = len(milkPerDay) - 1
+            passwordTest()
+            test = True
         elif(menu == 'Milk'):
-            menu = 'Tetris'
-            first = True
-        elif(menu == 'Tetris'):
-            menu = 'Id'
-            allReset()
-            first = True
-    elif(buttonPress(2)):
-        if(menu == 'Milk' and day > 0):
-            day -= 1
-            first = True
-        elif(menu == 'Milk' and day == 0):
-            display.clear()
-            display.scroll("No older data", 100)
-            display.clear()
             first = True
         elif(menu== 'Tetris'):
             if(gameOver):
@@ -491,33 +501,30 @@ while(True):
             else:
                 if(not (startX == 0)):
                     startX -= 1
-    elif(buttonPress(3)):
-        if(menu == 'Milk' and day < len(milkPerDay) - 1):
-            day += 1
-            first = True
-        elif(menu == 'Milk' and day == len(milkPerDay) - 1):
-            display.clear()
-            display.scroll("This is today", 100)
-            display.clear()
-            first = True
+    elif(button_b.was_pressed()):
+        if(menu == 'Milk'):
+            message = vigenere('0x04|', key, False)
+            end = vigenere('1', key, False)
+            message += str(len(str(nonce)) + 2)
+            message += '|'
+            message += vigenere(nonce, key, False)
+            message += ':'
+            message += end
+            radio.send(message)
+            nonce += 1
         elif(menu == 'Tetris'):
             if(not (startX == (5 - (len(tempBlock)/2)))):
                 startX += 1
-    elif(buttonPress(4)):
+    elif(pin0.is_touched()):
         if(menu == 'Tetris'):
             rotateLeft()
             tempBlock = possibleBlocks[chosenBlockIndex]
-    elif(buttonPress(5)):
+    elif(pin1.is_touched()):
         if(menu == 'Tetris'):
             rotateRight()
             tempBlock = possibleBlocks[chosenBlockIndex]
-    elif(buttonPress(6)):
-        if(menu == 'Milk'):
-            display.scroll("Reset today's doses", 100)
-            dosesAmount = 0
-            first = True
-            sleep(1000)
-        elif(menu == 'Tetris'):
+    elif(pin2.is_touched()):
+        if(menu == 'Tetris'):
             if(gameOver):
                 allReset()
             else:
