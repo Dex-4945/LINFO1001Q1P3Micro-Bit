@@ -34,7 +34,7 @@ key = 'bonjour'
 nonce = 0
 firstShine = True
 speaker.on()
-set_volume(0)
+set_volume(200)
 
 changeMenu = False
 randomNumber = int(random.random() * 100)
