@@ -199,8 +199,8 @@ def rotateRight():
             break
     if(chosenBlockIndex == 4 or chosenBlockIndex == 9):
         chosenBlockIndex = 7
-    elif(chosenBlockIndex == 9):
-        chosenBlockIndex = 7
+    elif(chosenBlockIndex == 7):
+        chosenBlockIndex = 9
 
 #Main function of the Tetris game
 def playGame():
