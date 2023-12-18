@@ -395,7 +395,7 @@ while(True):
                         testReceived += ':'
                         testReceived += end
                         radio.send(testReceived)
-			key += str(deterFunc(int(randomNumber)))
+                        key += str(deterFunc(int(randomNumber)))
                         print(testReceived)
                     else:
                         display.scroll('Error', 100)
